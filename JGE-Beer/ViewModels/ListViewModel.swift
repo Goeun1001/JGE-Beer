@@ -9,7 +9,7 @@ import RxSwift
 import RxCocoa
 import Moya
 
-class ListViewModel: ViewModelType {
+class ListViewModel {
     
     private var pageSize: Int = 1
     private var disposeBag = DisposeBag()
@@ -17,51 +17,72 @@ class ListViewModel: ViewModelType {
     // MARK: - ViewModelType
     
     struct Input {
-        let provider: MoyaProvider<BeerAPI>
-        let refreshTrigger: Signal<Void>
-        let nextPageSignal: Signal<Void>
+        let viewWillAppear = PublishRelay<Void>()
+        let refreshTrigger = PublishRelay<Void>()
+        let nextPageSignal = PublishRelay<Void>()
     }
     
     struct Output {
-        let list: BehaviorRelay<[Beer]>
-        let isLoading: Signal<Bool>
-        let errorRelay: PublishRelay<Error>
+        let list = BehaviorRelay<[Beer]>(value: [])
+        let isLoading = PublishRelay<Bool>()
+        let errorRelay = PublishRelay<Error>()
     }
     
-    func transform(input: Input) -> Output {
+    let input = Input()
+    let output = Output()
+    
+    init(provider: MoyaProvider<BeerAPI> = MoyaProvider<BeerAPI>()) {
         let activityIndicator = ActivityIndicator()
-        let list = BehaviorRelay<[Beer]>(value: [])
-        let errorRelay = PublishRelay<Error>()
+        
+        input.viewWillAppear
+            .asObservable()
+            .catchError { error -> Observable<Void> in
+                return Observable<Void>.just(())
+            }
+            .map { self.pageSize = 1 }
+            .flatMapLatest {
+                provider.rx.request(.getBeerList(pageSize: self.pageSize))
+                    .filterSuccessfulStatusCodes()
+                    .map([Beer].self)
+                    .trackActivity(activityIndicator)
+                    .do(onError: { self.output.errorRelay.accept($0) })
+                    .catchErrorJustReturn([])
+            }
+            .bind(to: output.list)
+            .disposed(by: disposeBag)
         
         input.refreshTrigger
             .asObservable()
             .map { self.pageSize = 1 }
             .flatMapLatest {
-                input.provider.rx.request(.getBeerList(pageSize: self.pageSize))
+                provider.rx.request(.getBeerList(pageSize: self.pageSize))
                     .filterSuccessfulStatusCodes()
                     .map([Beer].self)
                     .trackActivity(activityIndicator)
-                    .do(onError: { errorRelay.accept($0) })
+                    .do(onError: { self.output.errorRelay.accept($0) })
                     .catchErrorJustReturn([])
             }
-            .bind(to: list)
+            .bind(to: output.list)
             .disposed(by: disposeBag)
         
         input.nextPageSignal
             .asObservable()
             .map { self.pageSize += 1 }
             .flatMapLatest {
-                input.provider.rx.request(.getBeerList(pageSize: self.pageSize))
+                provider.rx.request(.getBeerList(pageSize: self.pageSize))
                     .filterSuccessfulStatusCodes()
                     .map([Beer].self)
                     .trackActivity(activityIndicator)
-                    .do(onError: { errorRelay.accept($0) })
+                    .do(onError: { self.output.errorRelay.accept($0) })
                     .catchErrorJustReturn([])
             }
-            .map { list.value + $0 }
-            .bind(to: list)
+            .map { self.output.list.value + $0 }
+            .bind(to: self.output.list)
             .disposed(by: disposeBag)
         
-        return Output(list: list, isLoading: activityIndicator.asSignal(onErrorJustReturn: false), errorRelay: errorRelay)
+        activityIndicator
+            .asObservable()
+            .bind(to: output.isLoading)
+            .disposed(by: disposeBag)
     }
 }
