@@ -13,6 +13,7 @@ class ListViewModel {
     
     private var pageSize: Int = 1
     private var disposeBag = DisposeBag()
+    private let beerListRepository: BeerListRepository
     
     // MARK: - ViewModelType
     
@@ -31,53 +32,57 @@ class ListViewModel {
     let input = Input()
     let output = Output()
     
-    init(provider: MoyaProvider<BeerAPI> = MoyaProvider<BeerAPI>()) {
+    init(provider: MoyaProvider<BeerAPI> = MoyaProvider<BeerAPI>(), beerListRepository: BeerListRepository) {
         let activityIndicator = ActivityIndicator()
+        self.beerListRepository = beerListRepository
         
         input.viewWillAppear
             .asObservable()
             .catchError { error -> Observable<Void> in
                 return Observable<Void>.just(())
             }
-            .map { self.pageSize = 1 }
-            .flatMapLatest {
-                provider.rx.request(.getBeerList(pageSize: self.pageSize))
-                    .filterSuccessfulStatusCodes()
-                    .map([Beer].self)
-                    .trackActivity(activityIndicator)
-                    .do(onError: { self.output.errorRelay.accept($0) })
-                    .catchErrorJustReturn([])
-            }
-            .bind(to: output.list)
+//            .map { self.pageSize = 1 }
+            .trackActivity(activityIndicator)
+            .subscribe(onNext: {
+                if self.pageSize == 1 {
+                    self.beerListRepository.fetchBeerList(page: self.pageSize,
+                                                          completion: { result in
+                         self.output.list.accept(result)
+                    })
+                }
+            }, onError: { error in
+                self.output.errorRelay.accept(error)
+            })
             .disposed(by: disposeBag)
         
         input.refreshTrigger
             .asObservable()
             .map { self.pageSize = 1 }
-            .flatMapLatest {
-                provider.rx.request(.getBeerList(pageSize: self.pageSize))
-                    .filterSuccessfulStatusCodes()
-                    .map([Beer].self)
-                    .trackActivity(activityIndicator)
-                    .do(onError: { self.output.errorRelay.accept($0) })
-                    .catchErrorJustReturn([])
-            }
-            .bind(to: output.list)
+            .trackActivity(activityIndicator)
+            .subscribe(onNext: {
+                self.beerListRepository.fetchBeerList(page: self.pageSize,
+                                                      completion: { result in
+                     self.output.isLoading.accept(false)
+                     self.output.list.accept(result)
+
+                })
+            }, onError: { error in
+                self.output.errorRelay.accept(error)
+            })
             .disposed(by: disposeBag)
         
         input.nextPageSignal
             .asObservable()
             .map { self.pageSize += 1 }
-            .flatMapLatest {
-                provider.rx.request(.getBeerList(pageSize: self.pageSize))
-                    .filterSuccessfulStatusCodes()
-                    .map([Beer].self)
-                    .trackActivity(activityIndicator)
-                    .do(onError: { self.output.errorRelay.accept($0) })
-                    .catchErrorJustReturn([])
-            }
-            .map { self.output.list.value + $0 }
-            .bind(to: self.output.list)
+            .trackActivity(activityIndicator)
+            .subscribe(onNext: {
+                self.beerListRepository.fetchBeerList(page: self.pageSize,
+                                                      completion: { result in
+                       self.output.list.accept(self.output.list.value + result)
+                })
+            }, onError: { error in
+                self.output.errorRelay.accept(error)
+            })
             .disposed(by: disposeBag)
         
         activityIndicator

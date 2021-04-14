@@ -19,13 +19,4 @@ struct Beer: Codable, Equatable {
         case description
         case imageURL = "image_url"
     }
-    
-    init(from decoder: Decoder) throws {
-        let values = try decoder.container(keyedBy: CodingKeys.self)
-        
-        self.id = try? values.decode(Int.self, forKey: .id)
-        self.name = try? values.decode(String.self, forKey: .name)
-        self.description = try? values.decode(String.self, forKey: .description)
-        self.imageURL = try? values.decode(String.self, forKey: .imageURL)
-    }
 }

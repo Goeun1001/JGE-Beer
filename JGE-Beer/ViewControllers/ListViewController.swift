@@ -16,7 +16,7 @@ import SnapKit
 class ListViewController: UIViewController {
     
     private let disposeBag = DisposeBag()
-    private let viewModel = ListViewModel()
+    private var viewModel : ListViewModel!
     
     private let tableView = UITableView() // lazy var랑 뭐가 다른지 모르겠음.
     private let refreshControl = UIRefreshControl()
@@ -28,6 +28,10 @@ class ListViewController: UIViewController {
     })
     
     // MARK: - Life Cycle
+     
+    func inject(viewModel: ListViewModel) {
+        self.viewModel = viewModel
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -59,8 +63,8 @@ class ListViewController: UIViewController {
                 self.viewModel.input.viewWillAppear.accept(())
             }, onError: { error in
                 print("ListView ViewAppear Error : \(error)")
+                self.showErrorAlert(with: error.localizedDescription)
             })
-            //            .bind(to: viewModel.input.viewWillAppear)
             .disposed(by: disposeBag)
         
         tableView.rx.reachedBottom(offset: 120.0)
@@ -68,8 +72,8 @@ class ListViewController: UIViewController {
                 self.viewModel.input.nextPageSignal.accept(())
             }, onError: { error in
                 print("ListView ReachBottom Error : \(error)")
+                self.showErrorAlert(with: error.localizedDescription)
             })
-            //            .bind(to: viewModel.input.nextPageSignal)
             .disposed(by: disposeBag)
         
         refreshControl.rx.controlEvent(.valueChanged)
@@ -77,32 +81,31 @@ class ListViewController: UIViewController {
                 self.viewModel.input.refreshTrigger.accept(())
             }, onError: { error in
                 print("ListView Refresh Error : \(error)")
+                self.showErrorAlert(with: error.localizedDescription)
             })
-            //            .bind(to: viewModel.input.refreshTrigger)
             .disposed(by: disposeBag)
         
         viewModel.output.list
             .map { [ListSection(header: "", items: $0)] }
-            //            .subscribe(onNext: { data in
+            //            .subscribe(onNext: { data in // 잘 안돼서 catchError 사용
             //                tableView.rx.items(dataSource: dataSource)
             //            }, onError: { error in
             //                print("ListView Refresh Error : \(error)")
             //            })
-            .catchError{ error in
+            .catchError{ error -> Observable<[ListSection]> in
                 print("ListView tableView List Error : \(error)")
+                self.showErrorAlert(with: error.localizedDescription)
                 return Observable<[ListSection]>.just([ListSection(header: "", items: [Beer]())])
             }
             .bind(to: tableView.rx.items(dataSource: dataSource))
             .disposed(by: disposeBag)
         
         viewModel.output.isLoading
-            .filter { !$0 }
             .subscribe(onNext: { bool in
-                self.refreshControl.rx.isRefreshing.on(Event<Bool>.next(bool))
+                self.refreshControl.rx.isRefreshing.onNext(bool)
             }, onError: { error in
-                print("ListView Refresh Error : \(error)")
+                print("ListView isLoading Error : \(error)")
             })
-            //            .bind(to: refreshControl.rx.isRefreshing)
             .disposed(by: disposeBag)
         
         viewModel.output.errorRelay
@@ -110,6 +113,7 @@ class ListViewController: UIViewController {
                 self?.showErrorAlert(with: error.localizedDescription)
             }, onError: { error in
                 print("ListView ViewModel ErrorRelay Error : \(error)")
+                self.showErrorAlert(with: error.localizedDescription)
             }).disposed(by: disposeBag)
         
         tableView.rx.modelSelected(Beer.self)
@@ -118,13 +122,15 @@ class ListViewController: UIViewController {
                 self?.navigationController?.pushViewController(controller, animated: true)
             }, onError: { error in
                 print("ListView tableView ModelSelected Error : \(error)")
+                self.showErrorAlert(with: error.localizedDescription)
             }).disposed(by: disposeBag)
         
         tableView.rx.itemSelected
             .subscribe(onNext: {
                 self.tableView.deselectRow(at: $0, animated: true)
-            },onError: { error in
+            }, onError: { error in
                 print("ListView tableView ItemSelected Error : \(error)")
+                self.showErrorAlert(with: error.localizedDescription)
             })
             .disposed(by: disposeBag)
     }
