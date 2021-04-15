@@ -10,7 +10,7 @@ import Moya
 
 protocol BeerListRepository {
     func fetchBeerList(page: Int,
-                       completion: @escaping ([Beer]) -> ())
+                       completion: @escaping (Result<[Beer], Error>) -> Void)
 }
 
 final class DefaultBeerListRepository {
@@ -23,7 +23,7 @@ final class DefaultBeerListRepository {
 
 extension DefaultBeerListRepository: BeerListRepository {
     public func fetchBeerList(page: Int,
-                              completion: @escaping ([Beer]) -> ()) {
+                              completion: @escaping (Result<[Beer], Error>) -> Void) {
         
         provider.request(.getBeerList(pageSize: page)) { result in
             switch result {
@@ -31,13 +31,13 @@ extension DefaultBeerListRepository: BeerListRepository {
                 let responseData = success.data
                 do {
                     let beerList = try JSONDecoder().decode([Beer].self, from: responseData)
-                    return completion(beerList)
+                    return completion(.success(beerList))
                 } catch {
-                    return completion([])
+                    return completion(.failure(error))
                 }
             case let .failure(error):
                 print(error)
-                return completion([])
+                return completion(.failure(error))
             }
         }
     }

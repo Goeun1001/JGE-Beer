@@ -41,14 +41,19 @@ class ListViewModel {
             .catchError { error -> Observable<Void> in
                 return Observable<Void>.just(())
             }
-//            .map { self.pageSize = 1 }
             .trackActivity(activityIndicator)
             .subscribe(onNext: {
                 if self.pageSize == 1 {
                     self.beerListRepository.fetchBeerList(page: self.pageSize,
                                                           completion: { result in
-                         self.output.list.accept(result)
-                    })
+                                                            switch result {
+                                                            case let .success(beers):
+                                                                self.output.isLoading.accept(false)
+                                                                self.output.list.accept(beers)
+                                                            case .failure(let error):
+                                                                self.output.errorRelay.accept(error)
+                                                            }
+                                                        })
                 }
             }, onError: { error in
                 self.output.errorRelay.accept(error)
@@ -62,10 +67,14 @@ class ListViewModel {
             .subscribe(onNext: {
                 self.beerListRepository.fetchBeerList(page: self.pageSize,
                                                       completion: { result in
-                     self.output.isLoading.accept(false)
-                     self.output.list.accept(result)
-
-                })
+                                                        switch result {
+                                                        case let .success(beers):
+                                                            self.output.isLoading.accept(false)
+                                                            self.output.list.accept(beers)
+                                                        case .failure(let error):
+                                                            self.output.errorRelay.accept(error)
+                                                        }
+                                                    })
             }, onError: { error in
                 self.output.errorRelay.accept(error)
             })
@@ -78,8 +87,13 @@ class ListViewModel {
             .subscribe(onNext: {
                 self.beerListRepository.fetchBeerList(page: self.pageSize,
                                                       completion: { result in
-                       self.output.list.accept(self.output.list.value + result)
-                })
+                                                         switch result {
+                                                         case let .success(beers):
+                                                             self.output.list.accept(self.output.list.value + beers)
+                                                         case .failure(let error):
+                                                             self.output.errorRelay.accept(error)
+                                                         }
+                                                     })
             }, onError: { error in
                 self.output.errorRelay.accept(error)
             })
