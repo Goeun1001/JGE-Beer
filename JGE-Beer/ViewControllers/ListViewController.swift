@@ -28,9 +28,14 @@ class ListViewController: UIViewController {
     })
     
     // MARK: - Life Cycle
-     
-    func inject(viewModel: ListViewModel) {
+    
+    init(viewModel: ListViewModel) {
+        super.init(nibName: nil, bundle: nil)
         self.viewModel = viewModel
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
     
     override func viewDidLoad() {

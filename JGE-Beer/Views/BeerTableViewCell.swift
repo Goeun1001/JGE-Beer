@@ -97,12 +97,8 @@ class BeerTableViewCell: UITableViewCell {
     
     private func setupSubview() {
         addSubview(mainStackView)
-        nameStackView.addArrangedSubview(idLabel)
-        nameStackView.addArrangedSubview(nameLabel)
-        nameStackView.addArrangedSubview(descLabel)
-        
-        mainStackView.addArrangedSubview(beerImageView)
-        mainStackView.addArrangedSubview(nameStackView)
+        nameStackView.addArrangeSubviews([idLabel, nameLabel, descLabel])
+        mainStackView.addArrangeSubviews([beerImageView, nameStackView])
         
         mainStackView.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview().inset(16.0)

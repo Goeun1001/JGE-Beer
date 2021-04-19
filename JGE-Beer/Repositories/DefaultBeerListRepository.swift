@@ -16,7 +16,7 @@ protocol BeerListRepository {
 final class DefaultBeerListRepository {
     private let provider: MoyaProvider<BeerAPI>
     
-    init(provider: MoyaProvider<BeerAPI>) {
+    init(provider: MoyaProvider<BeerAPI> = MoyaProvider<BeerAPI>()) {
         self.provider = provider
     }
 }
