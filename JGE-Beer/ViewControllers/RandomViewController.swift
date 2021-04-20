@@ -1,3 +1,5 @@
+
+
 //
 //  RandomViewController.swift
 //  JGE-Beer
@@ -38,6 +40,15 @@ class RandomViewController: UIViewController {
     
     // MARK: - Life Cycle
     
+    init(viewModel: RandomViewModel) {
+        super.init(nibName: nil, bundle: nil)
+        self.viewModel = viewModel
+    }
+    
+    required init?(coder: NSCoder) {
+             fatalError("init(coder:) has not been implemented")
+         }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupNavigationTitle()
@@ -71,30 +82,23 @@ class RandomViewController: UIViewController {
     }
     
     private func bindViewModel() {
-        viewModel = RandomViewModel()
         
-        let buttonTrigger = Signal<Void>.merge(.of(()), randomButton.rx.tap.asSignal())
         
-        let input = RandomViewModel.Input(provider: MoyaProvider<BeerAPI>(),
-                                        buttonTrigger: buttonTrigger)
-        
-        let output = viewModel?.transform(input: input)
-        
-        output?.beer
+        viewModel?.output.beer
             .subscribe(onNext: { [weak self] beer in
                 self?.randomView.configure(with: beer.first ?? Beer(id: nil, name: "", description: "", imageURL: nil))
                 self?.setupSubview()
             })
             .disposed(by: disposeBag)
         
-        output?.isLoading
+        viewModel?output?.isLoading
             .filter { !$0 }
             .emit(to: indicator.rx.isAnimating)
             .disposed(by: disposeBag)
         
-        output?.errorRelay
-            .subscribe(onNext: { [weak self] error in
-                self?.showErrorAlert(with: error.localizedDescription)
+        viewModel?output?.errorRelay.asObservable()
+            .subscribe(onNext: { [weak self] err in
+                self?.showErrorAlert(with: err.localizedDescription)
             }).disposed(by: disposeBag)
     }
 }

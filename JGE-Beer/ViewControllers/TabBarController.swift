@@ -23,7 +23,7 @@ class TabBarController: UITabBarController, UITabBarControllerDelegate {
         let searchVC = SearchViewController(viewModel: SearchViewModel())
         searchVC.tabBarItem = UITabBarItem(title: "ID 검색", image: UIImage(named: "Single Beer with bubble"), tag: 1)
         
-        let randomVC = RandomViewController()
+        let randomVC = RandomViewController(viewModel: RandomViewModel())
         randomVC.tabBarItem = UITabBarItem(title: "아무거나", image: UIImage(named: "Single Beer"), tag: 2)
 
         let listNavigationVC = UINavigationController(rootViewController: listVC)
