@@ -5,7 +5,7 @@ def pods
   # Reactive
   pod 'RxSwift', '~> 5'
   pod 'RxCocoa', '~> 5'
-
+  pod 'RxViewController'
   # Network
   pod 'Moya/RxSwift', '~> 14.0'
 
@@ -29,6 +29,7 @@ target 'JGE-Beer' do
 
   # Layout
   pod 'SnapKit', '~> 5.0.0'
+  pod 'Then'
 
   target 'JGE-BeerTests' do
     pods
