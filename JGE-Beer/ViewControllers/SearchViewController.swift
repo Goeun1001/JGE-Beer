@@ -26,9 +26,17 @@ class SearchViewController: UIViewController {
     
     // MARK: - Life Cycle
     
+    init(viewModel: SearchViewModel) {
+        super.init(nibName: nil, bundle: nil)
+        self.viewModel = viewModel
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
         setupNavigationBar()
         bindViewModel()
     }
@@ -61,30 +69,25 @@ class SearchViewController: UIViewController {
     }
     
     private func bindViewModel() {
-        viewModel = SearchViewModel()
+        searchController.searchBar.rx.text.orEmpty
+            .bind(to: (viewModel?.input.searchTrigger)!)
+            .disposed(by: disposeBag)
         
-        let searchTrigger = searchController.searchBar.rx.text.orEmpty.debounce(RxTimeInterval.microseconds(5), scheduler: MainScheduler.instance).distinctUntilChanged().asSignal(onErrorJustReturn: "0")
-        
-        let input = SearchViewModel.Input(provider: MoyaProvider<BeerAPI>(),
-                                          searchTrigger: searchTrigger)
-        
-        let output = viewModel?.transform(input: input)
-        
-        output?.beer
+        viewModel?.output.beer.asObservable()
             .subscribe(onNext: { [weak self] beer in
                 self?.randomView.configure(with: beer.first ?? Beer(id: nil, name: "", description: "", imageURL: nil))
                 self?.setupSubview()
             })
             .disposed(by: disposeBag)
         
-        output?.isLoading
+        viewModel?.output.isLoading
             .filter { !$0 }
             .emit(to: indicator.rx.isAnimating)
             .disposed(by: disposeBag)
         
-        output?.errorRelay
-            .subscribe(onNext: { [weak self] error in
-                self?.showErrorAlert(with: error.localizedDescription)
+        viewModel?.output.errorRelay.asObservable()
+            .subscribe(onNext: { [weak self] text in
+                self?.showErrorAlert(with: text)
             }).disposed(by: disposeBag)
     }
 }

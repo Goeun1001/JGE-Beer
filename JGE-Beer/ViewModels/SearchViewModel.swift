@@ -9,40 +9,40 @@ import RxSwift
 import RxCocoa
 import Moya
 
-class SearchViewModel: ViewModelType {
-    private var disposeBag = DisposeBag()
+
+class SearchViewModel {
+    let input: Input
+    let output: Output
     
     // MARK: - ViewModelType
     
     struct Input {
-        let provider: MoyaProvider<BeerAPI>
-        let searchTrigger: Signal<String>
+        let searchTrigger = PublishSubject<String>()
     }
     
     struct Output {
-        let beer: BehaviorRelay<[Beer]>
+        let beer: Signal<[Beer]>
         let isLoading: Signal<Bool>
-        let errorRelay: PublishRelay<Error>
+        let errorRelay: PublishRelay<String>
     }
     
-    func transform(input: Input) -> Output {
+    init() {
         let activityIndicator = ActivityIndicator()
-        let beer = BehaviorRelay<[Beer]>(value: [])
-        let errorRelay = PublishRelay<Error>()
         
-        input.searchTrigger
-            .asObservable()
-            .flatMapLatest { id in
-                input.provider.rx.request(.searchID(id: Int(id) ?? 0))
-                    .filterSuccessfulStatusCodes()
-                    .map([Beer].self)
-                    .trackActivity(activityIndicator)
-                    .do(onError: { errorRelay.accept($0) })
-                    .catchErrorJustReturn([])
-            }
-            .bind(to: beer)
-            .disposed(by: disposeBag)
+        let beer: PublishRelay<String> = PublishRelay()
         
-        return Output(beer: beer, isLoading: activityIndicator.asSignal(onErrorJustReturn: false), errorRelay: errorRelay)
+        input = Input()
+        output = Output(beer: input.searchTrigger.asObservable().catchError { error -> Observable<String> in
+            beer.accept(error.localizedDescription)
+            return Observable<String>.just("")
+        }.flatMapLatest {
+            provider.rx.request(.searchID(id: Int($0) ?? 0))
+                .filterSuccessfulStatusCodes()
+                .map([Beer].self)
+        }.asSignal(onErrorJustReturn: []),
+                        isLoading:
+                            activityIndicator.asSignal(onErrorJustReturn: false),
+        errorRelay: beer
+        )
     }
 }
