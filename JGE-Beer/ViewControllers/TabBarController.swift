@@ -6,8 +6,6 @@
 //
 
 import UIKit
-import Moya
-
 class TabBarController: UITabBarController, UITabBarControllerDelegate {
 
     override func viewDidLoad() {
@@ -17,7 +15,7 @@ class TabBarController: UITabBarController, UITabBarControllerDelegate {
     }
 
     func configureTabBarItems() {
-        let listVC = ListViewController(viewModel: ListViewModel(beerListRepository: DefaultBeerListRepository()))
+        let listVC = ListViewController()
         listVC.tabBarItem = UITabBarItem(title: "맥주 리스트", image: UIImage(named: "Multiple Beers"), tag: 0)
 
         let searchVC = SearchViewController(viewModel: SearchViewModel())

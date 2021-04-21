@@ -22,12 +22,8 @@ PODS:
   - RxSwift (5.1.2)
   - RxTest (5.1.2):
     - RxSwift (~> 5)
-  - RxViewController (1.0.0):
-    - RxCocoa (~> 5.0)
-    - RxSwift (~> 5.0)
   - SnapKit (5.0.1)
   - SwiftLint (0.43.0)
-  - Then (2.7.0)
 
 DEPENDENCIES:
   - Kingfisher
@@ -38,10 +34,8 @@ DEPENDENCIES:
   - RxDataSources (~> 4.0)
   - RxSwift (~> 5)
   - RxTest (~> 5)
-  - RxViewController
   - SnapKit (~> 5.0.0)
   - SwiftLint
-  - Then
 
 SPEC REPOS:
   trunk:
@@ -56,10 +50,8 @@ SPEC REPOS:
     - RxRelay
     - RxSwift
     - RxTest
-    - RxViewController
     - SnapKit
     - SwiftLint
-    - Then
 
 SPEC CHECKSUMS:
   Alamofire: 2291f7d21ca607c491dd17642e5d40fdcda0e65c
@@ -73,11 +65,9 @@ SPEC CHECKSUMS:
   RxRelay: d77f7d771495f43c556cbc43eebd1bb54d01e8e9
   RxSwift: 1e2e1f9570186967f617e49128ed26ccf1bafc8e
   RxTest: 274549b747dca56f47c52c8991ec5cf797ecfe40
-  RxViewController: 7330a46e5c31cd680db169da4c9fc8676e975a81
   SnapKit: 97b92857e3df3a0c71833cce143274bf6ef8e5eb
   SwiftLint: 0c645fdc6feed3e390c1701ab3cc669f88b42752
-  Then: acfe0be7e98221c6204e12f8161459606d5d822d
 
-PODFILE CHECKSUM: c64c0ab724cba4c836c9e740378590888a839fbc
+PODFILE CHECKSUM: a030d8da1bbcae345947e8087024317ed4880f83
 
 COCOAPODS: 1.10.0

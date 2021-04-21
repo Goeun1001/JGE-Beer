@@ -10,45 +10,58 @@ import SnapKit
 import RxSwift
 import Kingfisher
 import Reachability
-import Then
 
 class BeerTableViewCell: UITableViewCell {
     
+    private let stackSpacing: CGFloat = 10.0
+    private let padding: CGFloat = 16.0
     private var disposeBag = DisposeBag()
     
-    private let beerImageView = UIImageView().then {
-        $0.contentMode = .scaleAspectFit
-        $0.snp.makeConstraints {
+    private lazy var beerImageView: UIImageView = {
+        let beerImageView = UIImageView()
+        beerImageView.contentMode = .scaleAspectFit
+        beerImageView.snp.makeConstraints {
             $0.height.width.equalTo(120)
         }
-    }
+        return beerImageView
+    }()
     
-    private let idLabel = UILabel().then {
-        $0.textColor = UIColor.orange
-        $0.text = "ID"
-        $0.font = UIFont.systemFont(ofSize: UIFont.smallSystemFontSize)
-    }
+    private lazy var idLabel: UILabel = {
+        let idLabel = UILabel()
+        idLabel.textColor = UIColor.orange
+        idLabel.text = "ID"
+        idLabel.font = UIFont.systemFont(ofSize: UIFont.smallSystemFontSize)
+        return idLabel
+    }()
     
-    private let nameLabel = UILabel().then {
-        $0.text = "User Name"
-    }
+    private lazy var nameLabel: UILabel = {
+        let nameLabel = UILabel()
+        nameLabel.text = "User Name"
+        return nameLabel
+    }()
     
-    private let descLabel = UILabel().then {
-        $0.text = "Description"
-        $0.textColor = UIColor.gray
-        $0.numberOfLines = 3
-    }
+    private lazy var descLabel: UILabel = {
+        let descLabel = UILabel()
+        descLabel.text = "Description"
+        descLabel.textColor = UIColor.gray
+        descLabel.numberOfLines = 3
+        return descLabel
+    }()
     
-    private let nameStackView = UIStackView().then {
-        $0.axis = .vertical
-        $0.alignment = .top
-    }
+    private lazy var nameStackView: UIStackView = {
+        let nameStackView = UIStackView(arrangedSubviews: [idLabel, nameLabel, descLabel])
+        nameStackView.axis = .vertical
+        nameStackView.alignment = .top
+        return nameStackView
+    }()
     
-    private let mainStackView = UIStackView().then {
-        $0.axis = .horizontal
-        $0.distribution = .fill
-        $0.spacing = 10.0
-    }
+    private lazy var mainStackView: UIStackView = {
+        let mainStackView = UIStackView(arrangedSubviews: [beerImageView, nameStackView])
+        mainStackView.axis = .horizontal
+        mainStackView.distribution = .fill
+        mainStackView.spacing = stackSpacing
+        return mainStackView
+    }()
     
     // MARK: - Initialization
     
@@ -97,12 +110,9 @@ class BeerTableViewCell: UITableViewCell {
     
     private func setupSubview() {
         addSubview(mainStackView)
-        nameStackView.addArrangeSubviews([idLabel, nameLabel, descLabel])
-        mainStackView.addArrangeSubviews([beerImageView, nameStackView])
-        
         mainStackView.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview().inset(16.0)
-            $0.bottom.equalToSuperview().inset(16.0).priority(.high)
+            $0.top.leading.trailing.equalToSuperview().inset(padding)
+            $0.bottom.equalToSuperview().inset(padding).priority(.high)
         }
     }
 }

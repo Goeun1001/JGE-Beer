@@ -9,99 +9,59 @@ import RxSwift
 import RxCocoa
 import Moya
 
-class ListViewModel {
+class ListViewModel: ViewModelType {
     
     private var pageSize: Int = 1
     private var disposeBag = DisposeBag()
-    private let beerListRepository: BeerListRepository
     
     // MARK: - ViewModelType
     
     struct Input {
-        let viewWillAppear = PublishRelay<Void>()
-        let refreshTrigger = PublishRelay<Void>()
-        let nextPageSignal = PublishRelay<Void>()
+        let provider: MoyaProvider<BeerAPI>
+        let refreshTrigger: Signal<Void>
+        let nextPageSignal: Signal<Void>
     }
     
     struct Output {
-        let list = BehaviorRelay<[Beer]>(value: [])
-        let isLoading = PublishRelay<Bool>()
-        let errorRelay = PublishRelay<Error>()
+        let list: BehaviorRelay<[Beer]>
+        let isLoading: Signal<Bool>
+        let errorRelay: PublishRelay<Error>
     }
     
-    let input = Input()
-    let output = Output()
-    
-    init(provider: MoyaProvider<BeerAPI> = MoyaProvider<BeerAPI>(), beerListRepository: BeerListRepository) {
+    func transform(input: Input) -> Output {
         let activityIndicator = ActivityIndicator()
-        self.beerListRepository = beerListRepository
-        
-        input.viewWillAppear
-            .asObservable()
-            .catchError { error -> Observable<Void> in
-                return Observable<Void>.just(())
-            }
-            .trackActivity(activityIndicator)
-            .subscribe(onNext: {
-                if self.pageSize == 1 {
-                    self.beerListRepository.fetchBeerList(page: self.pageSize,
-                                                          completion: { result in
-                                                            switch result {
-                                                            case let .success(beers):
-                                                                self.output.isLoading.accept(false)
-                                                                self.output.list.accept(beers)
-                                                            case .failure(let error):
-                                                                self.output.errorRelay.accept(error)
-                                                            }
-                                                        })
-                }
-            }, onError: { error in
-                self.output.errorRelay.accept(error)
-            })
-            .disposed(by: disposeBag)
+        let list = BehaviorRelay<[Beer]>(value: [])
+        let errorRelay = PublishRelay<Error>()
         
         input.refreshTrigger
             .asObservable()
             .map { self.pageSize = 1 }
-            .trackActivity(activityIndicator)
-            .subscribe(onNext: {
-                self.beerListRepository.fetchBeerList(page: self.pageSize,
-                                                      completion: { result in
-                                                        switch result {
-                                                        case let .success(beers):
-                                                            self.output.isLoading.accept(false)
-                                                            self.output.list.accept(beers)
-                                                        case .failure(let error):
-                                                            self.output.errorRelay.accept(error)
-                                                        }
-                                                    })
-            }, onError: { error in
-                self.output.errorRelay.accept(error)
-            })
+            .flatMapLatest {
+                input.provider.rx.request(.getBeerList(pageSize: self.pageSize))
+                    .filterSuccessfulStatusCodes()
+                    .map([Beer].self)
+                    .trackActivity(activityIndicator)
+                    .do(onError: { errorRelay.accept($0) })
+                    .catchErrorJustReturn([])
+            }
+            .bind(to: list)
             .disposed(by: disposeBag)
         
         input.nextPageSignal
             .asObservable()
             .map { self.pageSize += 1 }
-            .trackActivity(activityIndicator)
-            .subscribe(onNext: {
-                self.beerListRepository.fetchBeerList(page: self.pageSize,
-                                                      completion: { result in
-                                                         switch result {
-                                                         case let .success(beers):
-                                                             self.output.list.accept(self.output.list.value + beers)
-                                                         case .failure(let error):
-                                                             self.output.errorRelay.accept(error)
-                                                         }
-                                                     })
-            }, onError: { error in
-                self.output.errorRelay.accept(error)
-            })
+            .flatMapLatest {
+                input.provider.rx.request(.getBeerList(pageSize: self.pageSize))
+                    .filterSuccessfulStatusCodes()
+                    .map([Beer].self)
+                    .trackActivity(activityIndicator)
+                    .do(onError: { errorRelay.accept($0) })
+                    .catchErrorJustReturn([])
+            }
+            .map { list.value + $0 }
+            .bind(to: list)
             .disposed(by: disposeBag)
         
-        activityIndicator
-            .asObservable()
-            .bind(to: output.isLoading)
-            .disposed(by: disposeBag)
+        return Output(list: list, isLoading: activityIndicator.asSignal(onErrorJustReturn: false), errorRelay: errorRelay)
     }
 }
